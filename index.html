@@ -1073,6 +1073,31 @@ h1,h2,h3,h4{font-family:var(--display);font-weight:500;line-height:1.08;letter-s
     }
   }
 
+  /* ---- Clip-path reveal fallback (getBoundingClientRect, unaffected by clip) ----
+     IO can compute zero intersection area for clip-path:inset(0 0 100% 0) elements
+     because some browsers use the visual box. This scroll handler uses the layout
+     box directly and is the authoritative trigger for section-heads, exp-cards,
+     and gallery figures. ---- */
+  var cpEls = Array.prototype.slice.call(
+    document.querySelectorAll('.section-head.reveal, .exp-card.reveal, .gallery-grid figure.reveal')
+  );
+  if (cpEls.length) {
+    var checkCP = function() {
+      var threshold = window.innerHeight * 0.92;
+      cpEls = cpEls.filter(function(el) {
+        if (el.classList.contains('show')) return false;
+        if (el.getBoundingClientRect().top < threshold) {
+          el.classList.add('show');
+          return false;
+        }
+        return true;
+      });
+      if (!cpEls.length) window.removeEventListener('scroll', checkCP);
+    };
+    window.addEventListener('scroll', checkCP, {passive:true});
+    checkCP();
+  }
+
   /* ---- Kicker line draw ---- */
   var kickers = document.querySelectorAll('.kicker');
   if ('IntersectionObserver' in window && !reduceMotion) {
