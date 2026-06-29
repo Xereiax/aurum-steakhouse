@@ -408,9 +408,121 @@ h1,h2,h3,h4{font-family:var(--display);font-weight:500;line-height:1.08;letter-s
   .scroll-hero-video{transform:none!important}
   .scroll-cue .rail::after{animation:none!important}
 }
+
+/* ============================================================
+   CUSTOM CURSOR
+   ============================================================ */
+@media (pointer:fine){
+  body.js-cursor,body.js-cursor *{cursor:none}
+  .c-dot{
+    position:fixed;z-index:9999;pointer-events:none;
+    width:8px;height:8px;border-radius:50%;background:var(--gold);
+    top:0;left:0;transform:translate(-50%,-50%);opacity:0;
+    transition:width .18s var(--ease),height .18s var(--ease),background .18s,opacity .22s;
+    will-change:left,top;
+  }
+  .c-ring{
+    position:fixed;z-index:9998;pointer-events:none;
+    width:8px;height:8px;border-radius:50%;
+    border:1px solid rgba(201,162,75,.42);
+    top:0;left:0;transform:translate(-50%,-50%);opacity:0;
+    transition:width .4s var(--ease-out),height .4s var(--ease-out),border-color .28s,opacity .22s;
+    will-change:left,top;
+  }
+  body.c-hover .c-dot{width:4px;height:4px;background:var(--gold-lt)}
+  body.c-hover .c-ring{width:34px;height:34px;border-color:rgba(201,162,75,.62)}
+  body.c-press .c-dot{width:3px;height:3px}
+  body.c-press .c-ring{width:22px;height:22px;border-color:var(--gold)}
+}
+
+/* ============================================================
+   KICKER LINE DRAW (animated in by JS observer)
+   ============================================================ */
+.kicker::before{width:0;transition:width .7s var(--ease-out)}
+.kicker.center::after{width:0;transition:width .7s var(--ease-out) .14s}
+.kicker.drawn::before{width:34px}
+.kicker.drawn.center::after{width:34px}
+
+/* ============================================================
+   GALLERY — closing corner-frame on hover
+   ============================================================ */
+.gallery-grid figure::before{
+  content:"";position:absolute;inset:10px;z-index:2;pointer-events:none;
+  border-left:1px solid transparent;border-bottom:1px solid transparent;
+  transform-origin:bottom left;transform:scale(.68);
+  transition:transform .52s var(--ease-out),border-color .12s;
+}
+.gallery-grid figure::after{
+  content:"";position:absolute;inset:10px;z-index:2;pointer-events:none;
+  border-right:1px solid transparent;border-top:1px solid transparent;
+  transform-origin:top right;transform:scale(.68);
+  transition:transform .52s var(--ease-out),border-color .12s;
+}
+.gallery-grid figure:hover::before,
+.gallery-grid figure:hover::after{border-color:rgba(201,162,75,.58);transform:scale(1)}
+
+/* ============================================================
+   DISH — shimmer sweep on hover (mirrors btn-gold ::after)
+   ============================================================ */
+.dish h3{position:relative;overflow:hidden}
+.dish h3::after{
+  content:"";position:absolute;top:0;left:-120%;width:55%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(201,162,75,.28),transparent);
+  transform:skewX(-18deg);transition:left .62s var(--ease);
+}
+.dish:hover h3::after{left:140%}
+
+/* ============================================================
+   STAT COUNTER PULSE
+   ============================================================ */
+@keyframes stat-pulse{
+  0%{text-shadow:none}
+  28%{text-shadow:0 0 20px rgba(201,162,75,.62),0 0 40px rgba(201,162,75,.24)}
+  100%{text-shadow:none}
+}
+
+/* ============================================================
+   SECTION BACKGROUNDS — multi-point stage lighting
+   ============================================================ */
+
+/* Story: warm key light upper-left (image side), cool fill lower-right */
+#story::after{
+  background:
+    radial-gradient(58% 52% at 7% 16%, rgba(201,162,75,.085), transparent 55%),
+    radial-gradient(44% 40% at 92% 84%, rgba(154,122,46,.048), transparent 50%),
+    radial-gradient(90% 28% at 50% 104%, rgba(10,9,8,.78), transparent 54%);
+}
+
+/* Menu: two overhead candlelight pools, offset so it reads as real lighting */
+.menu{
+  background:
+    radial-gradient(68% 46% at 22% -8%, rgba(201,162,75,.10), transparent 52%),
+    radial-gradient(52% 40% at 80% -5%, rgba(232,201,119,.06), transparent 48%),
+    radial-gradient(48% 34% at 60% 110%, rgba(154,122,46,.06), transparent 50%),
+    linear-gradient(180deg,var(--noir),var(--char) 42%,var(--coal) 78%,var(--noir));
+}
+
+/* Experience: char base to break the noir monotony; key light upper-right */
+#experience{background:var(--char)}
+#experience::after{
+  background:
+    radial-gradient(56% 48% at 90% 10%, rgba(201,162,75,.072), transparent 52%),
+    radial-gradient(48% 38% at 10% 90%, rgba(154,122,46,.048), transparent 48%),
+    radial-gradient(80% 26% at 50% 106%, rgba(10,9,8,.82), transparent 52%);
+}
+
+/* Gallery: light bleeds from upper-right, strong floor fade */
+#gallery::after{
+  background:
+    radial-gradient(55% 50% at 84% -6%, rgba(201,162,75,.08), transparent 50%),
+    radial-gradient(40% 34% at 12% 108%, rgba(154,122,46,.048), transparent 48%),
+    radial-gradient(100% 20% at 50% 102%, rgba(10,9,8,.86), transparent 50%);
+}
 </style>
 </head>
 <body>
+<div class="c-dot" id="cursorDot" aria-hidden="true"></div>
+<div class="c-ring" id="cursorRing" aria-hidden="true"></div>
 
 <!-- ============ NAV ============ -->
 <nav class="nav" id="nav" aria-label="Primary">
@@ -795,7 +907,13 @@ h1,h2,h3,h4{font-family:var(--display);font-weight:500;line-height:1.08;letter-s
       var p = Math.min((ts - start)/dur, 1);
       var eased = 1 - Math.pow(1 - p, 3);
       el.textContent = Math.round(eased * target) + suffix;
-      if(p < 1) requestAnimationFrame(step);
+      if(p < 1){
+        requestAnimationFrame(step);
+      } else {
+        el.style.animation = 'none';
+        el.offsetHeight;
+        el.style.animation = 'stat-pulse .9s var(--ease-out) forwards';
+      }
     };
     requestAnimationFrame(step);
   };
@@ -929,6 +1047,44 @@ h1,h2,h3,h4{font-family:var(--display);font-weight:500;line-height:1.08;letter-s
 
   /* ---- Year ---- */
   document.getElementById('yr').textContent = new Date().getFullYear();
+
+  /* ---- Custom cursor ---- */
+  if (!reduceMotion && window.matchMedia('(pointer:fine)').matches) {
+    var cDot = document.getElementById('cursorDot');
+    var cRing = document.getElementById('cursorRing');
+    if (cDot && cRing) {
+      document.body.classList.add('js-cursor');
+      var cMoved = false;
+      document.addEventListener('mousemove', function(e){
+        cDot.style.left  = e.clientX + 'px';
+        cDot.style.top   = e.clientY + 'px';
+        cRing.style.left = e.clientX + 'px';
+        cRing.style.top  = e.clientY + 'px';
+        if (!cMoved) { cDot.style.opacity = '1'; cRing.style.opacity = '1'; cMoved = true; }
+      }, {passive:true});
+      document.querySelectorAll('a,button,[role="button"],input,select,textarea,label,.dish,.gallery-grid figure,.exp-card').forEach(function(el){
+        el.addEventListener('mouseenter', function(){ document.body.classList.add('c-hover'); });
+        el.addEventListener('mouseleave', function(){ document.body.classList.remove('c-hover'); });
+      });
+      document.addEventListener('mousedown',  function(){ document.body.classList.add('c-press'); });
+      document.addEventListener('mouseup',    function(){ document.body.classList.remove('c-press'); });
+      document.addEventListener('mouseleave', function(){ cDot.style.opacity = '0'; cRing.style.opacity = '0'; });
+      document.addEventListener('mouseenter', function(){ if(cMoved){ cDot.style.opacity = '1'; cRing.style.opacity = '1'; } });
+    }
+  }
+
+  /* ---- Kicker line draw ---- */
+  var kickers = document.querySelectorAll('.kicker');
+  if ('IntersectionObserver' in window && !reduceMotion) {
+    var kio = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if (en.isIntersecting){ en.target.classList.add('drawn'); kio.unobserve(en.target); }
+      });
+    }, {threshold:0.7});
+    kickers.forEach(function(k){ kio.observe(k); });
+  } else {
+    kickers.forEach(function(k){ k.classList.add('drawn'); });
+  }
 })();
 </script>
 </body>
